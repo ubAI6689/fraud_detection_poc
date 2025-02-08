@@ -1,4 +1,3 @@
-# src/utils/data_generator.py
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
@@ -7,112 +6,164 @@ class DataGenerator:
     def __init__(self, seed=42):
         np.random.seed(seed)
         
-    def generate_user_trades(self, user_id, is_fraudulent, num_trades):
-        """Generate trade data for a single user with more nuanced patterns"""
+    def generate_user_trades(self, user_id, profile_type, num_trades=None):
+        """Generate trade data based on user profile"""
         trades = []
         base_date = datetime.now() - timedelta(days=30)
         
-        if is_fraudulent:
-            # Add some variance to fraudulent patterns
-            trade_amounts = np.random.normal(15, 10, num_trades)  # More variance in amounts
-            durations = np.random.exponential(30, num_trades)     # Mix of quick and longer trades
-            
-            for i in range(num_trades):
-                trades.append({
-                    'user_id': user_id,
-                    'timestamp': base_date + timedelta(minutes=np.random.randint(1, 120)),
-                    'trade_amount': max(1, trade_amounts[i]),  # Ensure positive amount
-                    'trade_duration_seconds': max(1, durations[i]),
-                    'profit_loss': np.random.normal(0, 2)  # More realistic P/L
-                })
-        else:
-            # Normal trading pattern with more realistic distribution
-            trade_amounts = np.random.lognormal(4, 1, num_trades)  # Log-normal distribution for amounts
-            durations = np.random.lognormal(5, 1, num_trades)      # Log-normal for durations
-            
-            for i in range(num_trades):
+        # Set default num_trades based on profile if not specified
+        if num_trades is None:
+            num_trades = {
+                "Regular Trader": np.random.randint(10, 20),
+                "High Volume Trader": np.random.randint(40, 60),
+                "New User": np.random.randint(1, 5),
+                "Suspicious Pattern": np.random.randint(15, 25),
+                "Day Trader": np.random.randint(30, 50),
+                "Long-term Investor": np.random.randint(3, 8)
+            }.get(profile_type, 10)
+
+        if profile_type == "High Volume Trader":
+            # Frequent large trades
+            for _ in range(num_trades):
                 trades.append({
                     'user_id': user_id,
                     'timestamp': base_date + timedelta(hours=np.random.randint(1, 720)),
-                    'trade_amount': trade_amounts[i],
-                    'trade_duration_seconds': durations[i],
-                    'profit_loss': np.random.normal(0, trade_amounts[i] * 0.1)  # P/L proportional to trade size
+                    'trade_amount': np.random.uniform(1000, 5000),
+                    'trade_duration_seconds': np.random.randint(300, 3600),
+                    'profit_loss': np.random.normal(0, 500)
                 })
-        
-        return trades
 
-    def generate_user_transactions(self, user_id, is_fraudulent, num_transactions):
-        """Generate more realistic transaction patterns"""
+        elif profile_type == "Suspicious Pattern":
+            # Quick successive small trades
+            for _ in range(num_trades):
+                trades.append({
+                    'user_id': user_id,
+                    'timestamp': base_date + timedelta(minutes=np.random.randint(1, 30)),
+                    'trade_amount': np.random.uniform(1, 10),
+                    'trade_duration_seconds': np.random.randint(1, 30),
+                    'profit_loss': np.random.uniform(-0.5, 0.5)
+                })
+
+        elif profile_type == "New User":
+            # Few small trades
+            for _ in range(num_trades):
+                trades.append({
+                    'user_id': user_id,
+                    'timestamp': base_date + timedelta(days=np.random.randint(1, 5)),
+                    'trade_amount': np.random.uniform(10, 100),
+                    'trade_duration_seconds': np.random.randint(60, 3600),
+                    'profit_loss': np.random.normal(0, 10)
+                })
+
+        elif profile_type == "Day Trader":
+            # Multiple trades per day, medium amounts
+            for _ in range(num_trades):
+                trades.append({
+                    'user_id': user_id,
+                    'timestamp': base_date + timedelta(hours=np.random.randint(1, 720)),
+                    'trade_amount': np.random.uniform(100, 1000),
+                    'trade_duration_seconds': np.random.randint(60, 1800),
+                    'profit_loss': np.random.normal(0, 100)
+                })
+
+        elif profile_type == "Long-term Investor":
+            # Few trades, larger amounts
+            for _ in range(num_trades):
+                trades.append({
+                    'user_id': user_id,
+                    'timestamp': base_date + timedelta(days=np.random.randint(1, 30)),
+                    'trade_amount': np.random.uniform(5000, 10000),
+                    'trade_duration_seconds': np.random.randint(3600, 86400),
+                    'profit_loss': np.random.normal(0, 1000)
+                })
+
+        else:  # Regular Trader
+            # Normal distribution of trades
+            for _ in range(num_trades):
+                trades.append({
+                    'user_id': user_id,
+                    'timestamp': base_date + timedelta(hours=np.random.randint(1, 720)),
+                    'trade_amount': np.random.uniform(100, 1000),
+                    'trade_duration_seconds': np.random.randint(300, 3600),
+                    'profit_loss': np.random.normal(0, 100)
+                })
+                
+        return pd.DataFrame(trades)
+
+    def generate_user_transactions(self, user_id, profile_type):
+        """Generate transaction data based on user profile"""
         transactions = []
         base_date = datetime.now() - timedelta(days=30)
+        
+        if profile_type == "High Volume Trader":
+            # Multiple large deposits and withdrawals
+            num_transactions = np.random.randint(10, 15)
+            for _ in range(num_transactions):
+                amount = np.random.uniform(5000, 10000)
+                transactions.append({
+                    'user_id': user_id,
+                    'timestamp': base_date + timedelta(days=np.random.randint(1, 30)),
+                    'transaction_type': np.random.choice(['deposit', 'withdrawal']),
+                    'amount': amount
+                })
 
-        if is_fraudulent:
-            # Add some noise to fraudulent patterns
-            deposit_amount = np.random.lognormal(8, 0.5)  # More variable deposit amounts
-            withdrawal_delay = np.random.exponential(2)    # Variable withdrawal timing
-            withdrawal_fraction = np.random.uniform(0.85, 0.98)  # Variable withdrawal amount
-
+        elif profile_type == "Suspicious Pattern":
+            # Large deposit followed by quick withdrawals
+            deposit_amount = np.random.uniform(5000, 10000)
             transactions.append({
                 'user_id': user_id,
                 'timestamp': base_date,
                 'transaction_type': 'deposit',
                 'amount': deposit_amount
             })
-
-            # Maybe add some small trades in between
-            if np.random.random() < 0.3:  # 30% chance of small intermediate transaction
-                transactions.append({
-                    'user_id': user_id,
-                    'timestamp': base_date + timedelta(days=withdrawal_delay/2),
-                    'transaction_type': np.random.choice(['deposit', 'withdrawal']),
-                    'amount': deposit_amount * 0.1
-                })
-
+            
             transactions.append({
                 'user_id': user_id,
-                'timestamp': base_date + timedelta(days=withdrawal_delay),
+                'timestamp': base_date + timedelta(days=np.random.randint(1, 3)),
                 'transaction_type': 'withdrawal',
-                'amount': deposit_amount * withdrawal_fraction
+                'amount': deposit_amount * 0.95
             })
-        else:
-            # Normal transaction pattern
+
+        elif profile_type == "New User":
+            # One or two small deposits
+            num_transactions = np.random.randint(1, 3)
             for _ in range(num_transactions):
-                amount = np.random.lognormal(5, 1)
+                transactions.append({
+                    'user_id': user_id,
+                    'timestamp': base_date + timedelta(days=np.random.randint(1, 5)),
+                    'transaction_type': 'deposit',
+                    'amount': np.random.uniform(100, 500)
+                })
+
+        else:  # Regular patterns for other profiles
+            num_transactions = np.random.randint(5, 10)
+            for _ in range(num_transactions):
+                amount = np.random.uniform(500, 2000)
                 transactions.append({
                     'user_id': user_id,
                     'timestamp': base_date + timedelta(days=np.random.randint(1, 30)),
-                    'transaction_type': np.random.choice(
-                        ['deposit', 'withdrawal'],
-                        p=[0.6, 0.4]  # Slightly more deposits than withdrawals
-                    ),
+                    'transaction_type': np.random.choice(['deposit', 'withdrawal']),
                     'amount': amount
                 })
+                
+        return pd.DataFrame(transactions)
 
-        return transactions
-
-    def generate_dataset(self, n_users=1000):
-        """Generate complete dataset with both fraudulent and legitimate users"""
-        all_trades = []
-        all_transactions = []
-        user_labels = {}
+    def generate_dataset(self, n_users=1, profile_type="Regular Trader"):
+        """Generate complete dataset for given number of users"""
+        all_trades = pd.DataFrame()
+        all_transactions = pd.DataFrame()
+        labels = []
         
         for user_id in range(n_users):
-            # 10% of users are fraudulent
-            is_fraudulent = np.random.random() < 0.1
-            user_labels[user_id] = is_fraudulent
+            # Generate trades and transactions based on profile
+            trades_df = self.generate_user_trades(user_id, profile_type)
+            transactions_df = self.generate_user_transactions(user_id, profile_type)
             
-            if is_fraudulent:
-                trades = self.generate_user_trades(user_id, True, np.random.randint(1, 5))
-                transactions = self.generate_user_transactions(user_id, True, 2)
-            else:
-                trades = self.generate_user_trades(user_id, False, np.random.randint(10, 50))
-                transactions = self.generate_user_transactions(user_id, False, np.random.randint(5, 15))
+            all_trades = pd.concat([all_trades, trades_df])
+            all_transactions = pd.concat([all_transactions, transactions_df])
             
-            all_trades.extend(trades)
-            all_transactions.extend(transactions)
+            # Determine if profile is fraudulent
+            is_fraudulent = 1 if profile_type == "Suspicious Pattern" else 0
+            labels.append({'user_id': user_id, 'is_fraudulent': is_fraudulent})
         
-        trades_df = pd.DataFrame(all_trades)
-        transactions_df = pd.DataFrame(all_transactions)
-        labels_df = pd.DataFrame.from_dict(user_labels, orient='index', columns=['is_fraudulent'])
-        
-        return trades_df, transactions_df, labels_df
+        return all_trades, all_transactions, pd.DataFrame(labels)
